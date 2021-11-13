@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -73,16 +75,30 @@ func dateOffsetsToPaths(today time.Time, days []string) (outputPaths []string) {
 	return
 }
 
+func runVim(paths []string) {
+	vimPath, err := exec.LookPath("nvim")
+	if err != nil {
+		panic("Could not find NeoVim in path!")
+	}
+
+	args := []string{vimPath}
+	args = append(args, paths...)
+	log.Printf("%+v", args)
+
+	syscall.Exec(vimPath, args, os.Environ())
+}
+
 var rootCmd = &cobra.Command{
 	Use: "vimlog",
 	Run: func(cmd *cobra.Command, args []string) {
 		today := time.Now()
 		outputPaths := dateOffsetsToPaths(today, args)
 
-		log.Printf("Got %d paths:", len(outputPaths))
-		for x, path := range outputPaths {
-			log.Printf("[%d] %s", x, path)
-		}
+		// log.Printf("Got %d paths:", len(outputPaths))
+		// for x, path := range outputPaths {
+		// 	log.Printf("[%d] %s", x, path)
+		// }
+		runVim(outputPaths)
 	},
 	DisableFlagParsing: true,
 }
