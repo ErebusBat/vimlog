@@ -61,7 +61,9 @@ func dateOffsetsToPaths(today time.Time, days []string) (outputPaths []string) {
 			if request == "y" {
 				offDate = getPreviousWorkingDay(today)
 			} else {
-				panic(fmt.Sprintf("Unknown offset %s", request))
+				// panic(fmt.Sprintf("Unknown offset %s", request))
+				outputPaths = append(outputPaths, request)
+				continue
 			}
 		}
 
