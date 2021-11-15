@@ -73,13 +73,18 @@ func runEditor(paths []string) {
 	//  3. Look for nvim in path
 	if viper.IsSet("Editor") {
 		editorPath = viper.GetString("Editor")
-	} else if envPath := os.ExpandEnv("EDITOR"); len(envPath) > 0 {
+	} else if envPath := os.ExpandEnv("$EDITOR"); len(envPath) > 0 {
 		editorPath = envPath
-	} else if neditorPath, err := exec.LookPath("nvim"); err != nil {
-		editorPath = neditorPath
+	} else {
+		editorPath = "nvim"
+	}
+
+	// We need a full path so make sure we have one
+	if expandedPath, err := exec.LookPath(editorPath); err == nil {
+		editorPath = expandedPath
 	} else {
 		ensureOutput()
-		log.Fatal("Could not find a valid editor!")
+		log.Fatalf("Could not find editor %s", editorPath)
 	}
 
 	// options
@@ -98,6 +103,7 @@ func runEditor(paths []string) {
 	// This syscall should replace the process, assuming it succeeds
 	err := syscall.Exec(editorPath, args, os.Environ())
 	if err != nil {
+		ensureOutput()
 		log.Printf("FATAL: spawning editor failed, make sure that %s exists and is executable", editorPath)
 		log.Fatal(err)
 	}
