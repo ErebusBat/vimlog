@@ -32,6 +32,11 @@ func dateOffsetsToPaths(today time.Time, days []string) (outputPaths []string) {
 	parentPath := viper.GetString("DateBasePath")
 
 	for _, request := range days {
+		if request == "--" {
+			// We will get this because we tell cobra to not parse flags
+			continue
+		}
+
 		offset, err := strconv.Atoi(request)
 		var offDate time.Time
 

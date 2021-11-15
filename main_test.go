@@ -103,6 +103,7 @@ func TestDateOffsetsToPaths(t *testing.T) {
 		"-3",
 		"y",
 		"pass_through.md",
+		"--", // Should not propigate
 		"-2",
 		"-1",
 		"0",
