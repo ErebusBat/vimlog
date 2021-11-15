@@ -3,7 +3,7 @@
 ## Install
 
 ```
-go install github.com/erebusbat/vimlog
+go install github.com/ErebusBat/vimlog@latest
 ```
 
 ### What is VimLog?
