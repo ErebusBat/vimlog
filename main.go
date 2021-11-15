@@ -83,14 +83,20 @@ func runVim(paths []string) {
 }
 
 func loadOptions() {
+	//
 	// Defaults
+	//
 	viper.SetDefault("DateBasePath", "")
 
-	// Setup ENV overloading
+	//
+	// ENV overloading
+	//
 	viper.SetEnvPrefix("VIMLOG")
 	viper.AutomaticEnv()
 
-	// Setup config file
+	//
+	// Config file
+	//
 	viper.SetConfigName(".vimlog")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
@@ -103,22 +109,48 @@ func loadOptions() {
 		}
 	}
 
-	// We don't want LogFlags in the example config so set it this way
+	//
+	// Logging (default no logging)
+	//
+	logFlags := 0
 	if viper.IsSet("LogFlags") {
-		logFlags := viper.GetInt("LogFlags")
-		if logFlags == 0 {
-			// Assume user doesn't want ANY output
-			log.SetFlags(logFlags)
-			log.SetOutput(io.Discard)
-		}
-	} else {
-		log.SetFlags(log.LstdFlags)
+		// We don't want LogFlags in the example config so set it this way
+		logFlags = viper.GetInt("LogFlags")
+	} else if viper.IsSet("Silent") && viper.GetBool("Silent") {
+		// VIMLOG_LOGFLAGS will override VIMLOG_SILENT
+		// But setting VIMLOG_LOGFLAGS=0 != VIMLOG_SILENT=1
+		// as VIMLOG_SILENT=1 will not allow output to be enabled by certain
+		// commands (like config print)
+		logFlags = 0
 	}
 
+	log.SetFlags(logFlags)
+
+	if logFlags == 0 {
+		// LogFlags only control prefix (timestamp, etc)
+		// if LogFlags == 0 then also make sure that we don't output message
+		log.SetOutput(io.Discard)
+	}
+
+	//
 	// Debug / output
+	//
 	if viper.GetBool("Debug") {
 		log.Printf("Config: %v", viper.AllSettings())
 	}
+}
+
+// Called by functions that output text by the nature of their design
+// (i.e. config print).  This will ensure that logging output is
+// actually enabled (default is disabled) for these commands
+// Can be disabled via VIMLOG_SILENT=1 if you REALLY don't want output
+func ensureOutput() {
+	if log.Flags() > 0 || viper.GetBool("Silent") {
+		return
+	}
+
+	log.SetFlags(log.LstdFlags)
+	log.SetOutput(os.Stderr)
 }
 
 var configCmd = &cobra.Command{
@@ -131,10 +163,7 @@ var configCmd = &cobra.Command{
 var configPrintCmd = &cobra.Command{
 	Use: "print",
 	Run: func(_ *cobra.Command, _ []string) {
-		if viper.IsSet("LogFlags") && viper.GetInt("LogFlags") == 0 {
-			os.Stderr.WriteString("WARNING: You have LogFlags set to 0 so you won't see any output here\n")
-			os.Stderr.WriteString("         You can call `VIMLOG_LOGFLAGS=2 vimlog config print`\n")
-		}
+		ensureOutput()
 		log.Printf("Config file in use: %s", viper.ConfigFileUsed())
 		log.Printf("Config: %v", viper.AllSettings())
 	},
