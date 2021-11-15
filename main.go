@@ -74,10 +74,18 @@ func runVim(paths []string) {
 		vimPath = nvimPath
 	}
 
+	// options
+	editor_options := viper.GetStringSlice("editor_options")
+
 	// Build entire command
 	args := []string{vimPath}
+	args = append(args, editor_options...)
 	args = append(args, paths...)
 	log.Printf("Executing: %v", args)
+
+	if viper.GetBool("NoEdit") {
+		log.Fatal("VIMLOG_NOEDIT=1 exiting")
+	}
 
 	// This syscall should replace the process, assuming it succeeds
 	err := syscall.Exec(vimPath, args, os.Environ())
