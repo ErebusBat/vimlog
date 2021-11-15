@@ -14,21 +14,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// type Options struct {
-//   DateParentPath
-// }
-
-// func parseConfig(path string) (config *photorg.Options, err error) {
-// 	config = new(photorg.Options)
-// 	log.Printf("Loading config %s\n", path)
-// 	if _, err = toml.DecodeFile(path, &config); err != nil {
-// 		return nil, err
-// 	}
-// 	log.Printf("  SourcePath = %s\n", config.SourcePath)
-// 	log.Printf("    DestRoot = %s\n", config.DestRoot)
-// 	return config, nil
-// }
-
 func getPreviousWorkingDay(today time.Time) time.Time {
 	baseDate := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.Local)
 
@@ -43,7 +28,6 @@ func getPreviousWorkingDay(today time.Time) time.Time {
 }
 
 func dateOffsetsToPaths(today time.Time, days []string) (outputPaths []string) {
-	// TODO: This shouldn't be hardcoded
 	parentPath := viper.GetString("DateBasePath")
 
 	for _, request := range days {
@@ -71,8 +55,18 @@ func dateOffsetsToPaths(today time.Time, days []string) (outputPaths []string) {
 }
 
 func runVim(paths []string) {
-	vimPath := viper.GetString("Vim")
+	var vimPath string
+	if viper.IsSet("Vim") {
+		vimPath = viper.GetString("Vim")
+	} else {
+		nvimPath, err := exec.LookPath("nvim")
+		if err != nil {
+			log.Fatal("Could not find nvim in path.")
+		}
+		vimPath = nvimPath
+	}
 
+	// Build entire command
 	args := []string{vimPath}
 	args = append(args, paths...)
 	log.Printf("Executing: %v", args)
@@ -83,6 +77,60 @@ func runVim(paths []string) {
 		log.Printf("FATAL: spawning editor failed, make sure that %s exists and is executable", vimPath)
 		log.Fatal(err)
 	}
+}
+
+func loadOptions() {
+	// Defaults
+	viper.SetDefault("DateBasePath", "")
+
+	// Setup ENV overloading
+	viper.SetEnvPrefix("VIMLOG")
+	viper.AutomaticEnv()
+
+	// Setup config file
+	viper.SetConfigName(".vimlog")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("$HOME/.config")
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// No config file... that is okay, we will use defaults
+		} else {
+			log.Fatalf("Config file error %v", err)
+		}
+	}
+
+	// Debug / output
+	if viper.GetBool("Debug") {
+		log.Printf("Config: %v", viper.AllSettings())
+	}
+}
+
+var configCmd = &cobra.Command{
+	Use: "config",
+	Run: func(cmd *cobra.Command, args []string) {
+		log.Printf("config %v", args)
+	},
+}
+
+var configPrintCmd = &cobra.Command{
+	Use: "print",
+	Run: func(cmd *cobra.Command, args []string) {
+		log.Printf("Config file in use: %s", viper.ConfigFileUsed())
+		log.Printf("Config: %v", viper.AllSettings())
+	},
+}
+
+var configWriteCmd = &cobra.Command{
+	Use: "write",
+	Run: func(cmd *cobra.Command, args []string) {
+		if viper.ConfigFileUsed() == "" {
+			viper.SetConfigFile("./.vimlog.yaml")
+			log.Printf("No config file found...")
+		}
+		viper.WriteConfig()
+		log.Printf("Wrote config %s", viper.ConfigFileUsed())
+	},
 }
 
 var rootCmd = &cobra.Command{
@@ -107,46 +155,11 @@ var rootCmd = &cobra.Command{
 	DisableFlagParsing: true,
 }
 
-func loadOptions() {
-	// Defaults
-	viper.SetDefault("DateBasePath", "")
-	viper.SetDefault("Debug", false)
-	if vimPath, err := exec.LookPath("nvim"); err == nil {
-		viper.SetDefault("Vim", vimPath)
-	}
-
-	// Setup ENV overloading
-	viper.SetEnvPrefix("VIMLOG")
-	viper.AutomaticEnv()
-
-	// Setup config file
-	viper.SetConfigName(".vimlog")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("$HOME/.config")
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// No config file... that is okay, we will use defaults
-		} else {
-			log.Fatalf("Config file error %v", err)
-		}
-	}
-
-	// Debug / output
-	if viper.GetBool("Debug") {
-		log.Printf("Config: %v", viper.AllSettings())
-
-		// TODO: Maybe add a cobra flag to write this?
-		// if viper.ConfigFileUsed() == "" {
-		// 	viper.SetConfigFile("./.vimlog.yaml")
-		// }
-		// viper.WriteConfig()
-		// log.Printf("Wrote config %s", viper.ConfigFileUsed())
-	}
-}
-
 func main() {
 	log.Println("vimlog - starting")
+	rootCmd.AddCommand(configCmd)
+	configCmd.AddCommand(configPrintCmd)
+	configCmd.AddCommand(configWriteCmd)
 
 	loadOptions()
 

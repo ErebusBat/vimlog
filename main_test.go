@@ -5,6 +5,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/spf13/viper"
 )
 
 func dateStr(date time.Time) string {
@@ -91,17 +92,25 @@ func TestDateOffsetsToPaths(t *testing.T) {
 	x := NewGomegaWithT(t)
 	today := time.Date(2021, 11, 15, 0, 0, 0, 0, time.Local)
 	expected := []string{
-		"tguest/logs/2021-11-12.md",
-		"tguest/logs/2021-11-12.md",
-		"tguest/logs/2021-11-13.md",
-		"tguest/logs/2021-11-14.md",
+		"test/journal/2021-11-12.md",
+		"test/journal/2021-11-12.md",
+		"pass_through.md",
+		"test/journal/2021-11-13.md",
+		"test/journal/2021-11-14.md",
+		"test/journal/2021-11-15.md",
 	}
 	days := []string{
 		"-3",
 		"y",
+		"pass_through.md",
 		"-2",
 		"-1",
+		"0",
 	}
+
+	// Set a specific testing path, but also end with a trailing slash to
+	// ensure that a proper path.Join is being performed
+	viper.Set("DateBasePath", "test/journal/")
 
 	actual := dateOffsetsToPaths(today, days)
 	x.Expect(actual).To(Equal(expected))
