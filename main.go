@@ -88,7 +88,13 @@ func runEditor(paths []string) {
 	}
 
 	// options
-	editor_options := viper.GetStringSlice("editor_options")
+	editor_options := viper.GetStringSlice("EditorOptions")
+
+	// Setup VIMLOG_NOEDIT so user gets output
+	noEditMode := viper.GetBool("NoEdit")
+	if noEditMode {
+		ensureOutput()
+	}
 
 	// Build entire command
 	args := []string{editorPath}
@@ -96,7 +102,7 @@ func runEditor(paths []string) {
 	args = append(args, paths...)
 	log.Printf("Executing: %v", args)
 
-	if viper.GetBool("NoEdit") {
+	if noEditMode {
 		log.Fatal("VIMLOG_NOEDIT=1 exiting")
 	}
 
@@ -118,6 +124,7 @@ func loadOptions() {
 	// Defaults
 	//
 	viper.SetDefault("DateBasePath", "")
+	viper.SetDefault("EditorOptions", []string{})
 
 	//
 	// ENV overloading
@@ -208,6 +215,7 @@ var configWriteCmd = &cobra.Command{
 	Use: "write",
 	Run: func(_ *cobra.Command, _ []string) {
 		if viper.ConfigFileUsed() == "" {
+			ensureOutput()
 			viper.SetConfigFile("./.vimlog.yaml")
 			log.Printf("No config file found...")
 		}
