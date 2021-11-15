@@ -96,10 +96,11 @@ var rootCmd = &cobra.Command{
 		today := time.Now()
 		outputPaths := dateOffsetsToPaths(today, args)
 
-		// log.Printf("Got %d paths:", len(outputPaths))
-		// for x, path := range outputPaths {
-		// 	log.Printf("[%d] %s", x, path)
-		// }
+		if len(outputPaths) <= 0 {
+			log.Println("No args, opening todays log")
+			outputPaths = dateOffsetsToPaths(today, []string{"0"})
+		}
+
 		runVim(outputPaths)
 	},
 	DisableFlagParsing: true,
