@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -102,6 +103,18 @@ func loadOptions() {
 		}
 	}
 
+	// We don't want LogFlags in the example config so set it this way
+	if viper.IsSet("LogFlags") {
+		logFlags := viper.GetInt("LogFlags")
+		if logFlags == 0 {
+			// Assume user doesn't want ANY output
+			log.SetFlags(logFlags)
+			log.SetOutput(io.Discard)
+		}
+	} else {
+		log.SetFlags(log.LstdFlags)
+	}
+
 	// Debug / output
 	if viper.GetBool("Debug") {
 		log.Printf("Config: %v", viper.AllSettings())
@@ -118,6 +131,10 @@ var configCmd = &cobra.Command{
 var configPrintCmd = &cobra.Command{
 	Use: "print",
 	Run: func(_ *cobra.Command, _ []string) {
+		if viper.IsSet("LogFlags") && viper.GetInt("LogFlags") == 0 {
+			os.Stderr.WriteString("WARNING: You have LogFlags set to 0 so you won't see any output here\n")
+			os.Stderr.WriteString("         You can call `VIMLOG_LOGFLAGS=2 vimlog config print`\n")
+		}
 		log.Printf("Config file in use: %s", viper.ConfigFileUsed())
 		log.Printf("Config: %v", viper.AllSettings())
 	},
@@ -158,12 +175,13 @@ var rootCmd = &cobra.Command{
 }
 
 func main() {
-	log.Println("vimlog - starting")
 	rootCmd.AddCommand(configCmd)
 	configCmd.AddCommand(configPrintCmd)
 	configCmd.AddCommand(configWriteCmd)
 
+	// load options and THEN output log line (in case options suppress logging)
 	loadOptions()
+	log.Println("vimlog - starting")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
