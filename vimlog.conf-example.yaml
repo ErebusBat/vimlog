@@ -1,2 +1,2 @@
 DateBasePath: journal
-# VimPath: /path/to/nvim/if/not/on/path
+# Editor: /path/to/nvim/if/not/$EDITOR

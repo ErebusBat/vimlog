@@ -15,6 +15,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+////////////////////////////////////////////////////////////////////////////////
+// Domain Specific Functionality
+////////////////////////////////////////////////////////////////////////////////
+
 func getPreviousWorkingDay(today time.Time) time.Time {
 	baseDate := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.Local)
 
@@ -60,25 +64,29 @@ func dateOffsetsToPaths(today time.Time, days []string) (outputPaths []string) {
 	return
 }
 
-func runVim(paths []string) {
-	var vimPath string
+func runEditor(paths []string) {
+	var editorPath string
 
-	// Get path, use config path (if set), otherwise try to use nvim in $PATH
-	if viper.IsSet("Vim") {
-		vimPath = viper.GetString("Vim")
+	// Get editor path:
+	//  1. Use VIMLOG_EDITOR
+	//  2. Use $EDITOR
+	//  3. Look for nvim in path
+	if viper.IsSet("Editor") {
+		editorPath = viper.GetString("Editor")
+	} else if envPath := os.ExpandEnv("EDITOR"); len(envPath) > 0 {
+		editorPath = envPath
+	} else if neditorPath, err := exec.LookPath("nvim"); err != nil {
+		editorPath = neditorPath
 	} else {
-		nvimPath, err := exec.LookPath("nvim")
-		if err != nil {
-			log.Fatal("Could not find nvim in path.")
-		}
-		vimPath = nvimPath
+		ensureOutput()
+		log.Fatal("Could not find a valid editor!")
 	}
 
 	// options
 	editor_options := viper.GetStringSlice("editor_options")
 
 	// Build entire command
-	args := []string{vimPath}
+	args := []string{editorPath}
 	args = append(args, editor_options...)
 	args = append(args, paths...)
 	log.Printf("Executing: %v", args)
@@ -88,12 +96,16 @@ func runVim(paths []string) {
 	}
 
 	// This syscall should replace the process, assuming it succeeds
-	err := syscall.Exec(vimPath, args, os.Environ())
+	err := syscall.Exec(editorPath, args, os.Environ())
 	if err != nil {
-		log.Printf("FATAL: spawning editor failed, make sure that %s exists and is executable", vimPath)
+		log.Printf("FATAL: spawning editor failed, make sure that %s exists and is executable", editorPath)
 		log.Fatal(err)
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Options + Logging
+////////////////////////////////////////////////////////////////////////////////
 
 func loadOptions() {
 	//
@@ -166,6 +178,10 @@ func ensureOutput() {
 	log.SetOutput(os.Stderr)
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Commands
+////////////////////////////////////////////////////////////////////////////////
+
 var configCmd = &cobra.Command{
 	Use: "config",
 	Run: func(_ *cobra.Command, args []string) {
@@ -211,10 +227,14 @@ var rootCmd = &cobra.Command{
 			os.Exit(0)
 		}
 
-		runVim(outputPaths)
+		runEditor(outputPaths)
 	},
 	DisableFlagParsing: true,
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Entry Point
+////////////////////////////////////////////////////////////////////////////////
 
 func main() {
 	rootCmd.AddCommand(configCmd)
