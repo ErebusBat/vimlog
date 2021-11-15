@@ -14,13 +14,7 @@ import (
 )
 
 func getPreviousWorkingDay(today time.Time) time.Time {
-	// precision, err := time.ParseDuration("24h")
-	// if err != nil {
-	// 	panic("Get your code right!")
-	// }
-	// today = today.Truncate(precision)
 	baseDate := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.Local)
-	// baseDateString := baseDate.Format("2006-01-02")
 
 	for i := -1; i > -14; i-- {
 		adjustedDate := baseDate.AddDate(0, 0, i)
@@ -28,28 +22,13 @@ func getPreviousWorkingDay(today time.Time) time.Time {
 		if dow >= time.Monday && dow <= time.Friday {
 			return adjustedDate
 		}
-		// adjustedString := adjustedDate.Format("2006-01-02")
-		// log.Printf("getPreviousWorkingDay[%s %d]: %s %v", baseDateString, i, adjustedString, adjustedDate.Weekday())
 	}
 	return today
 }
 
 func dateOffsetsToPaths(today time.Time, days []string) (outputPaths []string) {
-	// days := []string{"0", "-1", "y", "-2"}
+	// TODO: This shouldn't be hardcoded
 	parentPath := "tguest/logs"
-
-	// today := time.Now()
-	// today = today.AddDate(0, 0, -4)
-
-	// outputPaths := make([]string, 0)
-
-	// var days []string
-	// if len(os.Args) > 1 {
-	// 	// Get rid of the exe path from $0
-	// 	days = os.Args[1:]
-	// } else {
-	// 	days = []string{"0", "y"}
-	// }
 
 	for _, request := range days {
 		offset, err := strconv.Atoi(request)
@@ -61,7 +40,6 @@ func dateOffsetsToPaths(today time.Time, days []string) (outputPaths []string) {
 			if request == "y" {
 				offDate = getPreviousWorkingDay(today)
 			} else {
-				// panic(fmt.Sprintf("Unknown offset %s", request))
 				outputPaths = append(outputPaths, request)
 				continue
 			}
@@ -71,7 +49,6 @@ func dateOffsetsToPaths(today time.Time, days []string) (outputPaths []string) {
 		fileName += ".md"
 		path := filepath.Join(parentPath, fileName)
 
-		// log.Printf("%d = %s %d %v", reqnum, request, offset, offDate.Format("2006-01-02"))
 		outputPaths = append(outputPaths, path)
 	}
 	return
