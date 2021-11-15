@@ -56,6 +56,8 @@ func dateOffsetsToPaths(today time.Time, days []string) (outputPaths []string) {
 
 func runVim(paths []string) {
 	var vimPath string
+
+	// Get path, use config path (if set), otherwise try to use nvim in $PATH
 	if viper.IsSet("Vim") {
 		vimPath = viper.GetString("Vim")
 	} else {
@@ -108,14 +110,14 @@ func loadOptions() {
 
 var configCmd = &cobra.Command{
 	Use: "config",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		log.Printf("config %v", args)
 	},
 }
 
 var configPrintCmd = &cobra.Command{
 	Use: "print",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		log.Printf("Config file in use: %s", viper.ConfigFileUsed())
 		log.Printf("Config: %v", viper.AllSettings())
 	},
@@ -123,7 +125,7 @@ var configPrintCmd = &cobra.Command{
 
 var configWriteCmd = &cobra.Command{
 	Use: "write",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		if viper.ConfigFileUsed() == "" {
 			viper.SetConfigFile("./.vimlog.yaml")
 			log.Printf("No config file found...")
@@ -135,7 +137,7 @@ var configWriteCmd = &cobra.Command{
 
 var rootCmd = &cobra.Command{
 	Use: "vimlog",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		today := time.Now()
 		outputPaths := dateOffsetsToPaths(today, args)
 
