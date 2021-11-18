@@ -96,8 +96,15 @@ func runEditor(paths []string) {
 		ensureOutput()
 	}
 
+	// Put JUST the exename (not path) in $0
+	// If this is wrong then it will mess up tmux navigation
+	_, exeName := filepath.Split(editorPath)
+	if exeName == "" {
+		log.Fatalf("Could not get exename from %s", editorPath)
+	}
+
 	// Build entire command
-	args := []string{editorPath}
+	args := []string{exeName}
 	args = append(args, editor_options...)
 	args = append(args, paths...)
 	log.Printf("Executing: %v", args)
