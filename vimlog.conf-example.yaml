@@ -1,3 +1,4 @@
 DateBasePath: journal
+# FileNameFormat: YYYY-MM-DD
 # Editor: /path/to/nvim/if/not/$EDITOR
 # EditorOptions: []

@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -55,13 +56,36 @@ func dateOffsetsToPaths(today time.Time, days []string) (outputPaths []string) {
 			}
 		}
 
-		fileName := offDate.Format("2006-01-02")
-		fileName += ".md"
+		fileName := getFormattedFileName(offDate)
 		path := filepath.Join(parentPath, fileName)
 
 		outputPaths = append(outputPaths, path)
 	}
 	return
+}
+
+func getFormattedFileName(today time.Time) string {
+	var fileNameFormat string
+
+	if viper.IsSet("FileNameFormat") {
+		fileNameFormat = viper.GetString("FileNameFormat")
+	} else {
+		fileNameFormat = "YYYY-MM-DD"
+	}
+
+	// Convert config (obsidian) format to Golang
+	fmtString := strings.ReplaceAll(fileNameFormat, "YYYY", "2006")
+	fmtString = strings.ReplaceAll(fmtString, "MMM", "Jan")
+	fmtString = strings.ReplaceAll(fmtString, "MM", "01")
+	fmtString = strings.ReplaceAll(fmtString, "ddd", "Mon")
+	fmtString = strings.ReplaceAll(fmtString, "DD", "02")
+
+	fileName := today.Format(fmtString)
+	if !strings.HasSuffix(fileName, ".md") {
+		fileName += ".md"
+	}
+
+	return fileName
 }
 
 func runEditor(paths []string) {

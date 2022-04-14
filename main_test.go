@@ -116,3 +116,63 @@ func TestDateOffsetsToPaths(t *testing.T) {
 	actual := dateOffsetsToPaths(today, days)
 	x.Expect(actual).To(Equal(expected))
 }
+
+func TestFileNameFormat(t *testing.T) {
+	x := NewGomegaWithT(t)
+	today := time.Date(2021, 11, 15, 0, 0, 0, 0, time.Local)
+	viper.Set("DateBasePath", "test/path/")
+
+	// Start without a specific viper setting for FileNameFormat
+	x.Expect(dateOffsetsToPaths(
+		today,
+		[]string{"0"},
+	)).To(Equal([]string{"test/path/2021-11-15.md"}))
+
+	// Explicit default format
+	viper.Set("FileNameFormat", "YYYY-MM-DD")
+	x.Expect(dateOffsetsToPaths(
+		today,
+		[]string{"0"},
+	)).To(Equal([]string{"test/path/2021-11-15.md"}))
+
+	// Using All Known Formats, in a sub path
+	viper.Set("FileNameFormat", "YYYY/MM-MMM/YYYY-MM-DD-ddd")
+	x.Expect(dateOffsetsToPaths(
+		today,
+		[]string{"0"},
+	)).To(Equal([]string{"test/path/2021/11-Nov/2021-11-15-Mon.md"}))
+}
+
+func TestGetFormattedFileName(t *testing.T) {
+	x := NewGomegaWithT(t)
+	today := time.Date(2021, 11, 14, 0, 0, 0, 0, time.Local)
+
+	// Default, no viper setting
+	viper.Set("FileNameFormat", nil)
+	x.Expect(getFormattedFileName(today)).To(Equal("2021-11-14.md"))
+
+	// Explicit default format
+	viper.Set("FileNameFormat", "YYYY-MM-DD")
+	x.Expect(getFormattedFileName(today)).To(Equal("2021-11-14.md"))
+
+	// All Supported Formats
+	viper.Set("FileNameFormat", "YYYY/MM-MMM/YYYY-MM-DD-ddd")
+	x.Expect(getFormattedFileName(today)).To(Equal("2021/11-Nov/2021-11-14-Sun.md"))
+
+	// Explicitly stating .md extension in config
+	viper.Set("FileNameFormat", "YYYY-MM-DD.md")
+	x.Expect(getFormattedFileName(today)).To(Equal("2021-11-14.md"))
+
+	// Embedded .md in config works
+	viper.Set("FileNameFormat", "f.md/YYYY-MM-DD")
+	x.Expect(getFormattedFileName(today)).To(Equal("f.md/2021-11-14.md"))
+
+	// Explicitly stating a different extension in config
+	viper.Set("FileNameFormat", "YYYY-MM-DD.txt")
+	x.Expect(getFormattedFileName(today)).To(Equal("2021-11-14.txt.md"))
+
+	// Test with single digit month/day
+	today = time.Date(2021, 1, 4, 0, 0, 0, 0, time.Local)
+	viper.Set("FileNameFormat", "YYYY-MM-DD")
+	x.Expect(getFormattedFileName(today)).To(Equal("2021-01-04.md"))
+}
