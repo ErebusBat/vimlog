@@ -170,8 +170,11 @@ func loadOptions() {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("$HOME/.config")
-	if err := viper.ReadInConfig(); err != nil {
+	if err := viper.ReadInConfig(); err == nil {
+		log.Printf("Read in config file: %s\b", viper.ConfigFileUsed())
+	} else {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Println("No config file found, using defaults")
 			// No config file... that is okay, we will use defaults
 		} else {
 			log.Fatalf("Config file error %v", err)
@@ -262,8 +265,8 @@ var rootCmd = &cobra.Command{
 		outputPaths := dateOffsetsToPaths(today, args)
 
 		if len(outputPaths) <= 0 {
-			log.Println("No args, opening todays log")
 			outputPaths = dateOffsetsToPaths(today, []string{"0"})
+			log.Printf("No args, opening todays log; %s\n", outputPaths[0])
 		}
 
 		if viper.GetBool("Debug") {
